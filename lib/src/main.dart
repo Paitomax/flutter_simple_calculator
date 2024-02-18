@@ -120,8 +120,11 @@ class SimpleCalculator extends StatefulWidget {
   /// Controller for calculator.
   final CalcController? controller;
 
+  /// Button border radius.
+  final double borderRadius;
+
   const SimpleCalculator({
-    Key? key,
+    super.key,
     this.theme,
     this.hideExpression = false,
     this.value = 0,
@@ -133,7 +136,8 @@ class SimpleCalculator extends StatefulWidget {
     this.autofocus = false,
     this.focusNode,
     this.controller,
-  }) : super(key: key);
+    this.borderRadius = 0,
+  });
 
   @override
   SimpleCalculatorState createState() => SimpleCalculatorState();
@@ -294,12 +298,12 @@ class SimpleCalculatorState extends State<SimpleCalculator> {
             event.logicalKey == LogicalKeyboardKey.comma ||
             event.logicalKey == LogicalKeyboardKey.numpadDecimal ||
             event.character == '.') {
-          _handleKeyEvent(4, 1);
+          _handleKeyEvent(4, 2);
           return KeyEventResult.handled;
         }
         if (event.logicalKey == LogicalKeyboardKey.digit0 ||
             event.logicalKey == LogicalKeyboardKey.numpad0) {
-          _handleKeyEvent(4, 0);
+          _handleKeyEvent(4, 1);
           return KeyEventResult.handled;
         }
         if (event.logicalKey == LogicalKeyboardKey.digit1 ||
@@ -354,24 +358,26 @@ class SimpleCalculatorState extends State<SimpleCalculator> {
         onTap: () {
           _focusNode.requestFocus();
         },
-        child: Column(children: <Widget>[
-          Expanded(
-            child: _CalcDisplay(
-              hideSurroundingBorder: widget.hideSurroundingBorder,
-              hideExpression: widget.hideExpression,
-              onTappedDisplay: (a, b) {
-                _focusNode.requestFocus();
-                widget.onTappedDisplay?.call(a, b);
-              },
-              theme: widget.theme,
-              controller: _controller,
+        child: Column(
+          children: [
+            Expanded(
+              child: _CalcDisplay(
+                hideSurroundingBorder: widget.hideSurroundingBorder,
+                hideExpression: widget.hideExpression,
+                onTappedDisplay: (a, b) {
+                  _focusNode.requestFocus();
+                  widget.onTappedDisplay?.call(a, b);
+                },
+                theme: widget.theme,
+                controller: _controller,
+              ),
             ),
-          ),
-          Expanded(
-            flex: 5,
-            child: _getButtons(),
-          ),
-        ]),
+            Expanded(
+              flex: 5,
+              child: _getButtons(),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -392,7 +398,8 @@ class SimpleCalculatorState extends State<SimpleCalculator> {
   Widget _getButtons() {
     return GridButton(
       textStyle: _baseStyle.copyWith(
-          color: Theme.of(context).textTheme.labelLarge?.color),
+        color: Theme.of(context).textTheme.labelLarge?.color,
+      ),
       borderColor: widget.theme?.borderColor ?? Theme.of(context).dividerColor,
       textDirection: TextDirection.ltr,
       hideSurroundingBorder: widget.hideSurroundingBorder,
@@ -452,7 +459,7 @@ class SimpleCalculatorState extends State<SimpleCalculator> {
       [_nums[7], _nums[8], _nums[9], '×'],
       [_nums[4], _nums[5], _nums[6], '-'],
       [_nums[1], _nums[2], _nums[3], '+'],
-      [_nums[0], _controller.numberFormat.symbols.DECIMAL_SEP, '±', '='],
+      ['±', _nums[0], _controller.numberFormat.symbols.DECIMAL_SEP, '='],
     ].map((items) {
       return items.map((title) {
         Color color =
@@ -479,6 +486,7 @@ class SimpleCalculatorState extends State<SimpleCalculator> {
           title: title,
           color: color,
           textStyle: style,
+          borderRadius: widget.borderRadius,
         );
       }).toList();
     }).toList();
@@ -487,10 +495,10 @@ class SimpleCalculatorState extends State<SimpleCalculator> {
 
 class _CalcDisplay extends StatefulWidget {
   /// Whether to show surrounding borders.
-  final bool? hideSurroundingBorder;
+  final bool hideSurroundingBorder;
 
   /// Whether to show expression area.
-  final bool? hideExpression;
+  final bool hideExpression;
 
   /// Visual properties for this widget.
   final CalculatorThemeData? theme;
@@ -502,13 +510,12 @@ class _CalcDisplay extends StatefulWidget {
   final Function(double?, TapDownDetails)? onTappedDisplay;
 
   const _CalcDisplay({
-    Key? key,
-    this.hideSurroundingBorder,
-    this.hideExpression,
+    this.hideSurroundingBorder = false,
+    this.hideExpression = false,
     required this.onTappedDisplay,
     this.theme,
     required this.controller,
-  }) : super(key: key);
+  });
 
   @override
   _CalcDisplayState createState() => _CalcDisplayState();
@@ -550,10 +557,10 @@ class _CalcDisplayState extends State<_CalcDisplay> {
     return Container(
       decoration: BoxDecoration(
         border: Border(
-          top: widget.hideSurroundingBorder! ? BorderSide.none : borderSide,
-          left: widget.hideSurroundingBorder! ? BorderSide.none : borderSide,
-          right: widget.hideSurroundingBorder! ? BorderSide.none : borderSide,
-          bottom: widget.hideSurroundingBorder! ? borderSide : BorderSide.none,
+          top: widget.hideSurroundingBorder ? BorderSide.none : borderSide,
+          left: widget.hideSurroundingBorder ? BorderSide.none : borderSide,
+          right: widget.hideSurroundingBorder ? BorderSide.none : borderSide,
+          bottom: widget.hideSurroundingBorder ? borderSide : BorderSide.none,
         ),
       ),
       child: Column(
@@ -571,7 +578,7 @@ class _CalcDisplayState extends State<_CalcDisplay> {
                 child: Align(
                   alignment: Alignment.centerRight,
                   child: Padding(
-                    padding: const EdgeInsets.only(left: 18, right: 18),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: AutoSizeText(
                       widget.controller.display!,
                       style: widget.theme?.displayStyle ??
@@ -584,15 +591,14 @@ class _CalcDisplayState extends State<_CalcDisplay> {
               ),
             ),
           ),
-          Visibility(
-            visible: !widget.hideExpression!,
-            child: Expanded(
+          if (!widget.hideExpression)
+            Expanded(
               child: Container(
                 color: widget.theme?.expressionColor,
                 child: Align(
                   alignment: Alignment.centerRight,
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
                     scrollDirection: Axis.horizontal,
                     reverse: true,
                     child: Text(
@@ -606,7 +612,6 @@ class _CalcDisplayState extends State<_CalcDisplay> {
                 ),
               ),
             ),
-          ),
         ],
       ),
     );
